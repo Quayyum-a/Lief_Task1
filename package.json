@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "backend": "node start-backend.js",
-    "dev:full": "concurrently \"npm run backend\" \"npm run dev\"",
+    "dev:legacy": "concurrently \"npm run backend\" \"npm run dev\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -25,7 +25,6 @@
     "@types/react": "^18.0.28",
     "@types/react-dom": "^18.0.11",
     "@vitejs/plugin-react": "^3.1.0",
-    "concurrently": "^9.2.0",
     "eslint": "^8.45.0",
     "eslint-config-next": "^14.0.0",
     "vite": "^4.1.0"
