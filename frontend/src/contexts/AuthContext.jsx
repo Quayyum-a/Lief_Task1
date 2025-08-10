@@ -21,65 +21,17 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (username, password) => {
-    try {
-      const { user } = await authAPI.login(username, password);
-      setUser(user);
-      localStorage.setItem('currentUser', JSON.stringify(user));
-      return user;
-    } catch (error) {
-      // Fallback to localStorage for offline mode
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const user = users.find(
-        (u) => u.username === username && u.password === password
-      );
-
-      if (!user) {
-        throw new Error('Invalid username or password');
-      }
-
-      const userWithoutPassword = { ...user };
-      delete userWithoutPassword.password;
-
-      setUser(userWithoutPassword);
-      localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
-
-      return userWithoutPassword;
-    }
+    const { user } = await authAPI.login(username, password);
+    setUser(user);
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    return user;
   };
 
   const register = async (userData) => {
-    try {
-      const { user } = await authAPI.register(userData);
-      setUser(user);
-      localStorage.setItem('currentUser', JSON.stringify(user));
-      return user;
-    } catch (error) {
-      // Fallback to localStorage for offline mode
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-
-      if (users.find((u) => u.username === userData.username)) {
-        throw new Error('Username already exists');
-      }
-
-      const newUser = {
-        id: Date.now().toString(),
-        username: userData.username,
-        password: userData.password,
-        role: userData.role,
-        createdAt: new Date().toISOString(),
-      };
-
-      users.push(newUser);
-      localStorage.setItem('users', JSON.stringify(users));
-
-      const userWithoutPassword = { ...newUser };
-      delete userWithoutPassword.password;
-
-      setUser(userWithoutPassword);
-      localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
-
-      return userWithoutPassword;
-    }
+    const { user } = await authAPI.register(userData);
+    setUser(user);
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    return user;
   };
 
   const logout = () => {

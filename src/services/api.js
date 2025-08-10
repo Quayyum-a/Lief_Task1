@@ -1,5 +1,5 @@
 // API configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta?.env?.VITE_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 // Helper function to make API calls
 const apiCall = async (url, options = {}) => {
@@ -86,7 +86,6 @@ export const locationAPI = {
       body: JSON.stringify({ latitude, longitude, radius }),
     }),
 };
-
 
 // Location utilities
 export const locationUtils = {

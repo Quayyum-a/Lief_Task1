@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { authAPI } from "../services/api";
 
 const AuthContext = createContext();
 
@@ -18,50 +19,18 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  const register = (userData) => {
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-
-    if (users.find((u) => u.username === userData.username)) {
-      throw new Error("Username already exists");
-    }
-
-    const newUser = {
-      id: Date.now().toString(),
-      username: userData.username,
-      password: userData.password,
-      role: userData.role,
-      createdAt: new Date().toISOString(),
-    };
-
-    users.push(newUser);
-    localStorage.setItem("users", JSON.stringify(users));
-
-    const userWithoutPassword = { ...newUser };
-    delete userWithoutPassword.password;
-
-    setUser(userWithoutPassword);
-    localStorage.setItem("currentUser", JSON.stringify(userWithoutPassword));
-
-    return userWithoutPassword;
+  const register = async (userData) => {
+    const { user } = await authAPI.register(userData);
+    setUser(user);
+    localStorage.setItem("currentUser", JSON.stringify(user));
+    return user;
   };
 
-  const login = (username, password) => {
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-    const user = users.find(
-      (u) => u.username === username && u.password === password
-    );
-
-    if (!user) {
-      throw new Error("Invalid username or password");
-    }
-
-    const userWithoutPassword = { ...user };
-    delete userWithoutPassword.password;
-
-    setUser(userWithoutPassword);
-    localStorage.setItem("currentUser", JSON.stringify(userWithoutPassword));
-
-    return userWithoutPassword;
+  const login = async (username, password) => {
+    const { user } = await authAPI.login(username, password);
+    setUser(user);
+    localStorage.setItem("currentUser", JSON.stringify(user));
+    return user;
   };
 
   const logout = () => {

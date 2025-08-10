@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import DemoHelper from "./DemoHelper";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -31,9 +30,7 @@ export default function Login() {
   };
 
   return (
-    <>
-      <DemoHelper />
-      <div className="auth-container">
+    <div className="auth-container">
       <div className="text-center mb-4">
         <h1 className="card-title">Healthcare Shift Tracker</h1>
         <p style={{ color: "#6b7280", marginTop: "8px" }}>
@@ -84,7 +81,6 @@ export default function Login() {
           </p>
         </div>
       </form>
-      </div>
-    </>
+    </div>
   );
 }

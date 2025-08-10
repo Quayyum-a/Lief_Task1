@@ -388,61 +388,6 @@ app.post('/api/location/perimeter', async (req, res) => {
   }
 });
 
-// Demo data migration endpoint
-app.post('/api/demo/migrate', async (req, res) => {
-  try {
-    const connection = await getDbConnection();
-    
-    // Create demo users
-    const demoUsers = [
-      { username: "manager", password: "password123", role: "manager" },
-      { username: "alice", password: "password123", role: "care_worker" },
-      { username: "bob", password: "password123", role: "care_worker" },
-      { username: "carol", password: "password123", role: "care_worker" }
-    ];
-
-    const createdUsers = {};
-    for (const userData of demoUsers) {
-      const id = Date.now().toString() + Math.random();
-      try {
-        await connection.execute(
-          'INSERT INTO users (id, username, password, role) VALUES (?, ?, ?, ?)',
-          [id, userData.username, userData.password, userData.role]
-        );
-        createdUsers[userData.username] = { id, ...userData };
-        console.log(`Created user: ${userData.username}`);
-      } catch (error) {
-        if (error.code === 'ER_DUP_ENTRY') {
-          // User already exists, find them
-          const [rows] = await connection.execute(
-            'SELECT id, username, role FROM users WHERE username = ?',
-            [userData.username]
-          );
-          if (rows.length > 0) {
-            createdUsers[userData.username] = rows[0];
-            console.log(`User already exists: ${userData.username}`);
-          }
-        }
-      }
-    }
-
-    // Set location perimeter
-    await connection.execute('DELETE FROM location_perimeter');
-    await connection.execute(
-      'INSERT INTO location_perimeter (latitude, longitude, radius) VALUES (?, ?, ?)',
-      [51.5074, -0.1278, 2000]
-    );
-
-    res.json({
-      message: 'Demo data migrated successfully',
-      users: Object.keys(createdUsers).length,
-      success: true
-    });
-  } catch (error) {
-    console.error('Migration error:', error);
-    res.status(500).json({ error: 'Migration failed: ' + error.message });
-  }
-});
 
 // Start server
 const startServer = async () => {
