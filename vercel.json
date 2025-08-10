@@ -1,15 +1,15 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next"
+  "functions": {
+    "app/api/**/*.js": {
+      "maxDuration": 30
     }
-  ],
+  },
   "env": {
     "DB_HOST": "@db_host",
-    "DB_USER": "@db_user", 
+    "DB_USER": "@db_user",
     "DB_PASSWORD": "@db_password",
-    "DB_NAME": "@db_name"
+    "DB_NAME": "@db_name",
+    "VERCEL": "1"
   }
 }
