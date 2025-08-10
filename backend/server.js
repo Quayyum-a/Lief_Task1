@@ -13,30 +13,9 @@ const logger = {
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware - Allow multiple origins for production
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://localhost:3000',
-  process.env.CORS_ORIGIN,
-  process.env.FRONTEND_URL
-].filter(Boolean);
-
+// Middleware - No CORS needed for same-domain deployment
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, etc)
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-
-    // For production, be more permissive with HTTPS origins
-    if (origin.startsWith('https://') && process.env.NODE_ENV === 'production') {
-      return callback(null, true);
-    }
-
-    callback(new Error('Not allowed by CORS'));
-  },
+  origin: true, // Allow all origins since we're on the same domain
   credentials: true
 }));
 app.use(express.json());
@@ -210,9 +189,11 @@ app.get('/api/health/db-info', async (req, res) => {
 // Auth routes
 app.post('/api/auth/login', async (req, res) => {
   try {
+    logger.info(`Login attempt from ${req.ip}`);
     const { username, password } = req.body;
-    
+
     if (!username || !password) {
+      logger.warn('Login attempt with missing credentials');
       return res.status(400).json({ error: 'Username and password are required' });
     }
 
@@ -221,12 +202,14 @@ app.post('/api/auth/login', async (req, res) => {
       'SELECT id, username, role, created_at FROM users WHERE username = ? AND password = ?',
       [username, password]
     );
-    
+
     if (rows.length === 0) {
+      logger.warn(`Failed login attempt for username: ${username}`);
       return res.status(401).json({ error: 'Invalid username or password' });
     }
-    
+
     const user = rows[0];
+    logger.info(`Successful login for user: ${username}`);
     res.json({
       user: {
         id: user.id,
@@ -236,28 +219,31 @@ app.post('/api/auth/login', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Login error:', error);
+    logger.error(`Login error: ${error.message}`);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 app.post('/api/auth/register', async (req, res) => {
   try {
+    logger.info(`Registration attempt from ${req.ip}`);
     const { username, password, role } = req.body;
-    
+
     if (!username || !password || !role) {
+      logger.warn('Registration attempt with missing fields');
       return res.status(400).json({ error: 'Username, password, and role are required' });
     }
 
     const connection = await getDbConnection();
     const id = Date.now().toString();
-    
+
     try {
       await connection.execute(
         'INSERT INTO users (id, username, password, role) VALUES (?, ?, ?, ?)',
         [id, username, password, role]
       );
-      
+
+      logger.info(`User registered successfully: ${username}`);
       res.json({
         user: {
           id,
@@ -268,12 +254,13 @@ app.post('/api/auth/register', async (req, res) => {
       });
     } catch (error) {
       if (error.code === 'ER_DUP_ENTRY') {
+        logger.warn(`Registration failed - username already exists: ${username}`);
         return res.status(409).json({ error: 'Username already exists' });
       }
       throw error;
     }
   } catch (error) {
-    console.error('Registration error:', error);
+    logger.error(`Registration error: ${error.message}`);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
