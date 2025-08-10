@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "build": "echo 'No build needed'"
+    "test": "echo 'No tests specified'",
+    "build": "echo 'No build needed'",
+    "db:check": "node -e \"require('./server.js')\""
   },
   "dependencies": {
     "express": "^4.18.2",

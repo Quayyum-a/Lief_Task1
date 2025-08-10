@@ -3,11 +3,21 @@ const cors = require('cors');
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
+// Custom logger for backend
+const logger = {
+  info: (message) => console.log(`[INFO] ${new Date().toISOString()} - ${message}`),
+  error: (message) => console.error(`[ERROR] ${new Date().toISOString()} - ${message}`),
+  warn: (message) => console.warn(`[WARN] ${new Date().toISOString()} - ${message}`)
+};
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  credentials: true
+}));
 app.use(express.json());
 
 // Database configuration
@@ -92,7 +102,7 @@ const initializeDatabase = async () => {
       )
     `);
 
-    console.log('Database tables created successfully!');
+    logger.info('Database tables created successfully!');
     return connection;
   } catch (error) {
     console.error('Database initialization error:', error);
@@ -103,6 +113,62 @@ const initializeDatabase = async () => {
 // Health check endpoint
 app.get('/', (req, res) => {
   res.json({ message: 'Healthcare Shift Tracker API is running!' });
+});
+
+// Database health check endpoint
+app.get('/api/health/db', async (req, res) => {
+  try {
+    const connection = await getDbConnection();
+    await connection.execute('SELECT 1');
+    res.json({
+      status: 'healthy',
+      database: 'connected',
+      message: 'Database connection is working properly'
+    });
+  } catch (error) {
+    console.error('Database health check failed:', error);
+    res.status(503).json({
+      status: 'unhealthy',
+      database: 'disconnected',
+      error: 'Database connection failed',
+      message: error.message
+    });
+  }
+});
+
+// Database info endpoint (for development only)
+app.get('/api/health/db-info', async (req, res) => {
+  try {
+    const connection = await getDbConnection();
+
+    // Get database info
+    const [dbInfo] = await connection.execute('SELECT DATABASE() as current_database');
+    const [tables] = await connection.execute('SHOW TABLES');
+    const [userCount] = await connection.execute('SELECT COUNT(*) as user_count FROM users');
+    const [shiftCount] = await connection.execute('SELECT COUNT(*) as shift_count FROM shifts');
+
+    res.json({
+      status: 'connected',
+      database: dbInfo[0].current_database,
+      tables: tables.map(table => Object.values(table)[0]),
+      statistics: {
+        users: userCount[0].user_count,
+        shifts: shiftCount[0].shift_count
+      },
+      config: {
+        host: dbConfig.host,
+        database: dbConfig.database,
+        charset: dbConfig.charset
+      }
+    });
+  } catch (error) {
+    console.error('Database info check failed:', error);
+    res.status(503).json({
+      status: 'error',
+      error: 'Failed to get database information',
+      message: error.message
+    });
+  }
 });
 
 // Auth routes
@@ -394,7 +460,9 @@ const startServer = async () => {
   try {
     await initializeDatabase();
     app.listen(PORT, () => {
-      console.log(`Healthcare Shift Tracker API running on port ${PORT}`);
+      logger.info(`Healthcare Shift Tracker API running on port ${PORT}`);
+      logger.info(`Database: ${dbConfig.database} on ${dbConfig.host}`);
+      logger.info(`CORS origin: ${process.env.CORS_ORIGIN || 'http://localhost:3000'}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

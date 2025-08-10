@@ -5,7 +5,11 @@ const path = require('path');
 const backend = spawn('node', ['server.js'], {
   cwd: path.join(__dirname, 'backend'),
   stdio: 'inherit',
-  env: { ...process.env, PORT: 5000 }
+  env: {
+    ...process.env,
+    PORT: process.env.PORT || 5000,
+    NODE_ENV: process.env.NODE_ENV || 'development'
+  }
 });
 
 backend.on('error', (error) => {

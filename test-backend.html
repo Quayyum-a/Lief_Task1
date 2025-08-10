@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Backend & Database Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            border: 1px solid #ccc;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Healthcare Shift Tracker - Backend & Database Test</h1>
+    
+    <div>
+        <button onclick="testBackendHealth()">Test Backend Health</button>
+        <button onclick="testDatabaseHealth()">Test Database Health</button>
+        <button onclick="testDatabaseInfo()">Get Database Info</button>
+        <button onclick="testUserRegistration()">Test User Registration</button>
+        <button onclick="runAllTests()">Run All Tests</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        const BACKEND_URL = 'http://localhost:5000';
+        
+        function addResult(title, content, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            resultDiv.innerHTML = `<h3>${title}</h3>${content}`;
+            resultsDiv.appendChild(resultDiv);
+        }
+        
+        async function testBackendHealth() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addResult('✅ Backend Health Check', `
+                        <p><strong>Status:</strong> Running</p>
+                        <p><strong>Message:</strong> ${data.message}</p>
+                    `, 'success');
+                } else {
+                    addResult('❌ Backend Health Check Failed', `
+                        <p><strong>Status:</strong> ${response.status}</p>
+                        <p><strong>Error:</strong> ${data.error || 'Unknown error'}</p>
+                    `, 'error');
+                }
+            } catch (error) {
+                addResult('❌ Backend Connection Failed', `
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p>Make sure the backend server is running on port 5000</p>
+                `, 'error');
+            }
+        }
+        
+        async function testDatabaseHealth() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/health/db`);
+                const data = await response.json();
+                
+                if (response.ok && data.status === 'healthy') {
+                    addResult('✅ Database Health Check', `
+                        <p><strong>Status:</strong> ${data.status}</p>
+                        <p><strong>Database:</strong> ${data.database}</p>
+                        <p><strong>Message:</strong> ${data.message}</p>
+                    `, 'success');
+                } else {
+                    addResult('❌ Database Health Check Failed', `
+                        <p><strong>Status:</strong> ${data.status}</p>
+                        <p><strong>Database:</strong> ${data.database}</p>
+                        <p><strong>Error:</strong> ${data.error || data.message}</p>
+                    `, 'error');
+                }
+            } catch (error) {
+                addResult('❌ Database Health Check Error', `
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `, 'error');
+            }
+        }
+        
+        async function testDatabaseInfo() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/health/db-info`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addResult('📊 Database Information', `
+                        <p><strong>Database:</strong> ${data.database}</p>
+                        <p><strong>Tables:</strong> ${data.tables.join(', ')}</p>
+                        <p><strong>Users:</strong> ${data.statistics.users}</p>
+                        <p><strong>Shifts:</strong> ${data.statistics.shifts}</p>
+                        <p><strong>Host:</strong> ${data.config.host}</p>
+                        <details>
+                            <summary>Full Response</summary>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </details>
+                    `, 'info');
+                } else {
+                    addResult('❌ Database Info Failed', `
+                        <p><strong>Error:</strong> ${data.error || data.message}</p>
+                    `, 'error');
+                }
+            } catch (error) {
+                addResult('❌ Database Info Error', `
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `, 'error');
+            }
+        }
+        
+        async function testUserRegistration() {
+            try {
+                const testUser = {
+                    username: `testuser_${Date.now()}`,
+                    password: 'testpass123',
+                    role: 'care_worker'
+                };
+                
+                const response = await fetch(`${BACKEND_URL}/api/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(testUser)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addResult('✅ User Registration Test', `
+                        <p><strong>Success:</strong> User created successfully</p>
+                        <p><strong>User ID:</strong> ${data.user.id}</p>
+                        <p><strong>Username:</strong> ${data.user.username}</p>
+                        <p><strong>Role:</strong> ${data.user.role}</p>
+                        <p><strong>Created At:</strong> ${data.user.createdAt}</p>
+                    `, 'success');
+                } else {
+                    addResult('❌ User Registration Failed', `
+                        <p><strong>Status:</strong> ${response.status}</p>
+                        <p><strong>Error:</strong> ${data.error}</p>
+                    `, 'error');
+                }
+            } catch (error) {
+                addResult('❌ User Registration Error', `
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `, 'error');
+            }
+        }
+        
+        async function runAllTests() {
+            document.getElementById('results').innerHTML = '';
+            addResult('🚀 Running All Tests', 'Starting comprehensive backend and database tests...', 'info');
+            
+            await testBackendHealth();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testDatabaseHealth();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testDatabaseInfo();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testUserRegistration();
+            
+            addResult('✅ All Tests Completed', 'Backend and database tests finished. Check results above.', 'success');
+        }
+        
+        // Run initial test when page loads
+        window.onload = function() {
+            testBackendHealth();
+        };
+    </script>
+</body>
+</html>
