@@ -24,56 +24,76 @@ export function AuthProvider({ children }) {
   }, []);
 
   const register = async (userData) => {
-    const response = await fetch('http://localhost:5000/api/auth/register', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(userData),
-    });
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
 
-    const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        throw new Error('Invalid response from server');
+      }
 
-    if (!response.ok) {
-      throw new Error(data.error || 'Registration failed');
+      if (!response.ok) {
+        throw new Error(data.error || `Registration failed with status ${response.status}`);
+      }
+
+      const userWithoutPassword = { ...data.user };
+      delete userWithoutPassword.password;
+
+      setUser(userWithoutPassword);
+
+      // Keep session in localStorage for persistence
+      if (typeof window !== 'undefined') {
+        localStorage.setItem("currentUser", JSON.stringify(userWithoutPassword));
+      }
+
+      return userWithoutPassword;
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
     }
-
-    const userWithoutPassword = { ...data.user };
-    delete userWithoutPassword.password;
-
-    setUser(userWithoutPassword);
-
-    // Keep session in localStorage for persistence
-    if (typeof window !== 'undefined') {
-      localStorage.setItem("currentUser", JSON.stringify(userWithoutPassword));
-    }
-
-    return userWithoutPassword;
   };
 
   const login = async (username, password) => {
-    const response = await fetch('http://localhost:5000/api/auth/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ username, password }),
-    });
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      });
 
-    const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        throw new Error('Invalid response from server');
+      }
 
-    if (!response.ok) {
-      throw new Error(data.error || 'Login failed');
+      if (!response.ok) {
+        throw new Error(data.error || `Login failed with status ${response.status}`);
+      }
+
+      setUser(data.user);
+
+      // Keep session in localStorage for persistence
+      if (typeof window !== 'undefined') {
+        localStorage.setItem("currentUser", JSON.stringify(data.user));
+      }
+
+      return data.user;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
     }
-
-    setUser(data.user);
-
-    // Keep session in localStorage for persistence
-    if (typeof window !== 'undefined') {
-      localStorage.setItem("currentUser", JSON.stringify(data.user));
-    }
-
-    return data.user;
   };
 
   const logout = () => {

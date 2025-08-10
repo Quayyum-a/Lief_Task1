@@ -13,9 +13,30 @@ const logger = {
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+// Middleware - Allow multiple origins for production
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://localhost:3000',
+  process.env.CORS_ORIGIN,
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // For production, be more permissive with HTTPS origins
+    if (origin.startsWith('https://') && process.env.NODE_ENV === 'production') {
+      return callback(null, true);
+    }
+
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true
 }));
 app.use(express.json());
@@ -110,9 +131,24 @@ const initializeDatabase = async () => {
   }
 };
 
-// Health check endpoint
+// Health check endpoint - API only
 app.get('/', (req, res) => {
-  res.json({ message: 'Healthcare Shift Tracker API is running!' });
+  res.setHeader('Content-Type', 'application/json');
+  res.json({
+    message: 'Healthcare Shift Tracker API is running!',
+    service: 'API',
+    version: '1.0.0',
+    endpoints: [
+      'GET /api/health/db',
+      'POST /api/auth/register',
+      'POST /api/auth/login',
+      'GET /api/shifts',
+      'POST /api/shifts',
+      'GET /api/location/perimeter',
+      'POST /api/location/perimeter'
+    ],
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Database health check endpoint

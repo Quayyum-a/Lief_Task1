@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Proxy Test - NetworkError Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            border: 1px solid #ccc;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>NetworkError Fix Verification - API Proxy Test</h1>
+    
+    <div>
+        <button onclick="testDirectBackend()">Test Direct Backend (Port 5000)</button>
+        <button onclick="testNextJSProxy()">Test Next.js Proxy (Port 3000)</button>
+        <button onclick="testAuthFlow()">Test Complete Auth Flow</button>
+        <button onclick="runAllTests()">Run All Tests</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        function addResult(title, content, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            resultDiv.innerHTML = `<h3>${title}</h3>${content}`;
+            resultsDiv.appendChild(resultDiv);
+        }
+        
+        async function testDirectBackend() {
+            addResult('🔗 Testing Direct Backend Connection', 'Testing http://localhost:5000...', 'info');
+            
+            try {
+                const response = await fetch('http://localhost:5000/');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addResult('✅ Direct Backend Working', `
+                        <p><strong>Status:</strong> ${response.status}</p>
+                        <p><strong>Message:</strong> ${data.message}</p>
+                        <p><strong>CORS Headers:</strong> ${response.headers.get('Access-Control-Allow-Origin')}</p>
+                    `, 'success');
+                } else {
+                    addResult('❌ Direct Backend Failed', `
+                        <p><strong>Status:</strong> ${response.status}</p>
+                        <p><strong>Error:</strong> ${data.error || 'Unknown error'}</p>
+                    `, 'error');
+                }
+            } catch (error) {
+                addResult('❌ Direct Backend Error', `
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p>This indicates a network connectivity issue to the backend.</p>
+                `, 'error');
+            }
+        }
+        
+        async function testNextJSProxy() {
+            addResult('🔄 Testing Next.js API Proxy', 'Testing http://localhost:3000/api...', 'info');
+            
+            try {
+                // Test the proxy route that should forward to backend
+                const response = await fetch('http://localhost:3000/api/health/db');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult('✅ Next.js Proxy Working', `
+                        <p><strong>Status:</strong> ${response.status}</p>
+                        <p><strong>Database Status:</strong> ${data.status}</p>
+                        <p><strong>Message:</strong> ${data.message}</p>
+                        <p><strong>Proxy is functioning correctly!</strong></p>
+                    `, 'success');
+                } else {
+                    addResult('❌ Next.js Proxy Failed', `
+                        <p><strong>Status:</strong> ${response.status}</p>
+                        <p>The Next.js proxy is not forwarding requests properly.</p>
+                    `, 'error');
+                }
+            } catch (error) {
+                addResult('❌ Next.js Proxy Error', `
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p>The proxy configuration may not be working correctly.</p>
+                `, 'error');
+            }
+        }
+        
+        async function testAuthFlow() {
+            addResult('🔐 Testing Authentication Flow', 'Testing registration and login via proxy...', 'info');
+            
+            try {
+                // Test registration using the proxy
+                const testUser = {
+                    username: \`testuser_\${Date.now()}\`,
+                    password: 'testpass123',
+                    role: 'care_worker'
+                };
+                
+                const regResponse = await fetch('http://localhost:3000/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testUser)
+                });
+                
+                if (regResponse.ok) {
+                    const regData = await regResponse.json();
+                    
+                    // Test login
+                    const loginResponse = await fetch('http://localhost:3000/api/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            username: testUser.username,
+                            password: testUser.password
+                        })
+                    });
+                    
+                    if (loginResponse.ok) {
+                        const loginData = await loginResponse.json();
+                        addResult('✅ Auth Flow Working via Proxy', \`
+                            <p><strong>Registration:</strong> Success (User ID: \${regData.user.id})</p>
+                            <p><strong>Login:</strong> Success (User: \${loginData.user.username})</p>
+                            <p><strong>NetworkError:</strong> COMPLETELY FIXED!</p>
+                            <p><strong>Proxy is handling all API calls correctly.</strong></p>
+                        \`, 'success');
+                    } else {
+                        const loginError = await loginResponse.json();
+                        addResult('❌ Login Failed via Proxy', \`
+                            <p><strong>Login Error:</strong> \${loginError.error}</p>
+                        \`, 'error');
+                    }
+                } else {
+                    const regError = await regResponse.json();
+                    addResult('❌ Registration Failed via Proxy', \`
+                        <p><strong>Registration Error:</strong> \${regError.error}</p>
+                    \`, 'error');
+                }
+            } catch (error) {
+                addResult('❌ Auth Flow Error', \`
+                    <p><strong>Error:</strong> \${error.message}</p>
+                    <p><strong>This indicates NetworkError is still present.</strong></p>
+                \`, 'error');
+            }
+        }
+        
+        async function runAllTests() {
+            document.getElementById('results').innerHTML = '';
+            addResult('🚀 Running Complete NetworkError Fix Tests', 'Testing all aspects of the fix...', 'info');
+            
+            await testDirectBackend();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testNextJSProxy();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testAuthFlow();
+            
+            addResult('🎉 All Tests Completed', 'NetworkError fix verification complete. Check results above.', 'success');
+        }
+        
+        // Auto-run initial test
+        window.onload = function() {
+            addResult('🔧 NetworkError Fix Applied', \`
+                <p><strong>Problem:</strong> Frontend was making direct calls to http://localhost:5000</p>
+                <p><strong>Solution:</strong> Updated to use Next.js API proxy with relative URLs</p>
+                <p><strong>Changed:</strong> '/api/auth/register' instead of 'http://localhost:5000/api/auth/register'</p>
+                <p><strong>Result:</strong> Should eliminate CORS and networking issues</p>
+            \`, 'info');
+        };
+    </script>
+</body>
+</html>

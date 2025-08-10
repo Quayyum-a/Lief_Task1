@@ -16,16 +16,20 @@ export default function Dashboard() {
     loadData();
   }, [user]);
 
-  const loadData = () => {
+  const loadData = async () => {
     if (user) {
-      const current = ShiftService.getCurrentShift(user.id);
-      const userShifts = ShiftService.getShiftsByUser(user.id);
-      setCurrentShift(current);
-      setShifts(
-        userShifts.sort(
-          (a, b) => new Date(b.clockInTime) - new Date(a.clockInTime)
-        )
-      );
+      try {
+        const current = await ShiftService.getCurrentShift(user.id);
+        const userShifts = await ShiftService.getShiftsByUser(user.id);
+        setCurrentShift(current);
+        setShifts(
+          userShifts.sort(
+            (a, b) => new Date(b.clockInTime) - new Date(a.clockInTime)
+          )
+        );
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      }
     }
     setLoading(false);
   };

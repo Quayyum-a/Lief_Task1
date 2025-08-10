@@ -1,118 +1,83 @@
+import { shiftsAPI, locationUtils } from './api.js';
+
 export class ShiftService {
-  static getShifts() {
-    return JSON.parse(localStorage.getItem("shifts") || "[]");
-  }
-
-  static saveShift(shift) {
-    const shifts = this.getShifts();
-    shifts.push(shift);
-    localStorage.setItem("shifts", JSON.stringify(shifts));
-    return shift;
-  }
-
-  static updateShift(shiftId, updates) {
-    const shifts = this.getShifts();
-    const index = shifts.findIndex((s) => s.id === shiftId);
-    if (index !== -1) {
-      shifts[index] = { ...shifts[index], ...updates };
-      localStorage.setItem("shifts", JSON.stringify(shifts));
-      return shifts[index];
+  static async getShifts() {
+    try {
+      return await shiftsAPI.getAllShifts();
+    } catch (error) {
+      console.error('API error:', error);
+      throw error;
     }
-    return null;
   }
 
-  static getCurrentShift(userId) {
-    const shifts = this.getShifts();
-    return shifts.find((s) => s.userId === userId && !s.clockOutTime);
+  static async clockIn(userId, username, location, note = null) {
+    try {
+      const shift = await shiftsAPI.clockIn(userId, username, location, note);
+      return shift.shift || shift;
+    } catch (error) {
+      console.error('Clock in API error:', error);
+      throw error;
+    }
   }
 
-  static getShiftsByUser(userId) {
-    const shifts = this.getShifts();
-    return shifts.filter((s) => s.userId === userId);
+  static async clockOut(userId, location, note = null) {
+    try {
+      const shift = await shiftsAPI.clockOut(userId, location, note);
+      return shift.shift || shift;
+    } catch (error) {
+      console.error('Clock out API error:', error);
+      throw error;
+    }
   }
 
-  static getActiveShifts() {
-    const shifts = this.getShifts();
-    return shifts.filter((s) => !s.clockOutTime);
+  static async getCurrentShift(userId) {
+    try {
+      return await shiftsAPI.getCurrentShift(userId);
+    } catch (error) {
+      console.error('Get current shift API error:', error);
+      throw error;
+    }
   }
 
-  static getShiftsInDateRange(startDate, endDate) {
-    const shifts = this.getShifts();
-    return shifts.filter((s) => {
-      const shiftDate = new Date(s.clockInTime);
-      return shiftDate >= startDate && shiftDate <= endDate;
-    });
+  static async getShiftsByUser(userId) {
+    try {
+      return await shiftsAPI.getUserShifts(userId);
+    } catch (error) {
+      console.error('Get user shifts API error:', error);
+      throw error;
+    }
+  }
+
+  static async getActiveShifts() {
+    try {
+      return await shiftsAPI.getActiveShifts();
+    } catch (error) {
+      console.error('Get active shifts API error:', error);
+      throw error;
+    }
   }
 }
 
 export class LocationService {
-  static getPerimeter() {
-    const saved = localStorage.getItem("locationPerimeter");
-    return saved
-      ? JSON.parse(saved)
-      : {
-          latitude: 51.5074,
-          longitude: -0.1278,
-          radius: 2000,
-        };
+  static async getCurrentPosition() {
+    try {
+      return await locationUtils.getCurrentPosition();
+    } catch (error) {
+      console.error('Location error:', error);
+      throw new Error('Unable to get your location. Please enable location services.');
+    }
   }
 
-  static setPerimeter(latitude, longitude, radius) {
-    const perimeter = { latitude, longitude, radius };
-    localStorage.setItem("locationPerimeter", JSON.stringify(perimeter));
-    return perimeter;
-  }
-
-  static getCurrentPosition() {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error("Geolocation is not supported"));
-        return;
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          resolve({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-          });
-        },
-        (error) => {
-          reject(new Error(`Location error: ${error.message}`));
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 60000,
-        }
-      );
-    });
+  static async isWithinPerimeter(latitude, longitude) {
+    try {
+      return await locationUtils.isWithinPerimeter(latitude, longitude);
+    } catch (error) {
+      console.error('Perimeter check error:', error);
+      return false;
+    }
   }
 
   static calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371e3;
-    const φ1 = (lat1 * Math.PI) / 180;
-    const φ2 = (lat2 * Math.PI) / 180;
-    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
-
-    const a =
-      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return R * c;
-  }
-
-  static isWithinPerimeter(userLat, userLon) {
-    const perimeter = this.getPerimeter();
-    const distance = this.calculateDistance(
-      userLat,
-      userLon,
-      perimeter.latitude,
-      perimeter.longitude
-    );
-    return distance <= perimeter.radius;
+    return locationUtils.calculateDistance(lat1, lon1, lat2, lon2);
   }
 }

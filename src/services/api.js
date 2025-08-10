@@ -1,5 +1,8 @@
-// API configuration
-const API_BASE_URL = import.meta?.env?.VITE_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+// API configuration - use Next.js proxy when available, fallback to direct URL
+const API_BASE_URL =
+  typeof window !== 'undefined' && window.location.origin
+    ? '' // Use relative URLs for browser (Next.js proxy)
+    : process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 // Helper function to make API calls
 const apiCall = async (url, options = {}) => {

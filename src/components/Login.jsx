@@ -16,7 +16,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const user = login(username, password);
+      const user = await login(username, password);
       if (user.role === "manager") {
         navigate("/manager");
       } else {

@@ -29,7 +29,7 @@ export default function Register() {
     setLoading(true);
 
     try {
-      const user = register({ username, password, role });
+      const user = await register({ username, password, role });
       if (user.role === "manager") {
         navigate("/manager");
       } else {
