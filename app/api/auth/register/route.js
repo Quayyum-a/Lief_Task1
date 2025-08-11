@@ -1,13 +1,21 @@
 import { NextResponse } from 'next/server';
-const { getDbConnection, initializeDatabase } = require('../../../../lib/db');
+import { getDbConnection, initializeDatabase } from '../../../../lib/db';
 
 export async function POST(request) {
   try {
-    // Initialize database on first request
-    await initializeDatabase();
-    
-    const { username, password, role } = await request.json();
-    
+    // Parse request body
+    let requestBody;
+    try {
+      requestBody = await request.json();
+    } catch (parseError) {
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
+
+    const { username, password, role } = requestBody;
+
     if (!username || !password || !role) {
       return NextResponse.json(
         { error: 'Username, password, and role are required' },
@@ -15,15 +23,28 @@ export async function POST(request) {
       );
     }
 
+    // Initialize database tables (safe to call multiple times)
+    try {
+      await initializeDatabase();
+    } catch (initError) {
+      console.warn('Database initialization warning:', initError.message);
+      // Continue anyway - tables might already exist
+    }
+
     const connection = await getDbConnection();
     const id = Date.now().toString();
-    
+
     try {
       await connection.execute(
         'INSERT INTO users (id, username, password, role) VALUES (?, ?, ?, ?)',
         [id, username, password, role]
       );
-      
+
+      // Close connection in serverless environment
+      if (process.env.VERCEL && connection.end) {
+        await connection.end();
+      }
+
       return NextResponse.json({
         user: {
           id,
@@ -32,14 +53,19 @@ export async function POST(request) {
           createdAt: new Date().toISOString()
         }
       });
-    } catch (error) {
-      if (error.code === 'ER_DUP_ENTRY') {
+    } catch (dbError) {
+      // Close connection on error too
+      if (process.env.VERCEL && connection.end) {
+        try { await connection.end(); } catch (e) {}
+      }
+
+      if (dbError.code === 'ER_DUP_ENTRY') {
         return NextResponse.json(
           { error: 'Username already exists' },
           { status: 409 }
         );
       }
-      throw error;
+      throw dbError;
     }
   } catch (error) {
     console.error('Registration error:', error);
