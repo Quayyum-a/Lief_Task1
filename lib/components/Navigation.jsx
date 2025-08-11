@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../contexts/AuthContext";
 import { LogOut, Users, Clock } from "lucide-react";
+import DarkModeToggle from "./DarkModeToggle";
 
 export default function Navigation() {
   const { user, logout } = useAuth();
@@ -23,40 +24,44 @@ export default function Navigation() {
         </div>
 
         <div className="nav-user">
-          <span style={{ color: "#6b7280" }}>
+          <span style={{ color: "var(--text-secondary)" }}>
             {user?.username} ({user?.role?.replace("_", " ")})
           </span>
 
-          {user?.role === "manager" && (
-            <Link
-              href="/manager"
-              className="btn btn-outline"
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <DarkModeToggle />
+
+            {user?.role === "manager" && (
+              <Link
+                href="/manager"
+                className="btn btn-outline"
+                style={{ padding: "8px 16px" }}
+              >
+                <Users size={16} style={{ marginRight: "4px" }} />
+                Manager View
+              </Link>
+            )}
+
+            {user?.role === "care_worker" && (
+              <Link
+                href="/dashboard"
+                className="btn btn-outline"
+                style={{ padding: "8px 16px" }}
+              >
+                <Clock size={16} style={{ marginRight: "4px" }} />
+                My Shifts
+              </Link>
+            )}
+
+            <button
+              onClick={handleLogout}
+              className="btn btn-secondary"
               style={{ padding: "8px 16px" }}
             >
-              <Users size={16} style={{ marginRight: "4px" }} />
-              Manager View
-            </Link>
-          )}
-
-          {user?.role === "care_worker" && (
-            <Link
-              href="/dashboard"
-              className="btn btn-outline"
-              style={{ padding: "8px 16px" }}
-            >
-              <Clock size={16} style={{ marginRight: "4px" }} />
-              My Shifts
-            </Link>
-          )}
-
-          <button
-            onClick={handleLogout}
-            className="btn btn-secondary"
-            style={{ padding: "8px 16px" }}
-          >
-            <LogOut size={16} style={{ marginRight: "4px" }} />
-            Logout
-          </button>
+              <LogOut size={16} style={{ marginRight: "4px" }} />
+              Logout
+            </button>
+          </div>
         </div>
       </div>
     </nav>

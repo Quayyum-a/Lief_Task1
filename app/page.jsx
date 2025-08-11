@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AuthProvider, useAuth } from '../lib/contexts/AuthContext'
 import Login from '../lib/components/Login'
+import ServiceWorkerRegistration from '../lib/components/ServiceWorkerRegistration'
 
 function HomeContent() {
   const { user } = useAuth()
@@ -29,6 +30,7 @@ function HomeContent() {
 export default function Home() {
   return (
     <AuthProvider>
+      <ServiceWorkerRegistration />
       <div className="app">
         <HomeContent />
       </div>
