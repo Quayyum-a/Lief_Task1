@@ -4,9 +4,9 @@ import React, { useState, useEffect } from "react";
 import { BarChart3, Users, Clock, TrendingUp } from "lucide-react";
 
 export default function Analytics({
-  shifts,
-  activeShifts,
-  users,
+  shifts = [],
+  activeShifts = [],
+  users = [],
   onDataUpdate,
 }) {
   const [analytics, setAnalytics] = useState({
@@ -17,22 +17,30 @@ export default function Analytics({
   });
 
   useEffect(() => {
-    calculateAnalytics();
+    if (shifts && activeShifts && users) {
+      calculateAnalytics();
+    }
   }, [shifts, activeShifts, users]);
 
   const calculateAnalytics = () => {
+    // Guard against invalid data
+    if (!shifts || !Array.isArray(shifts) || !activeShifts || !Array.isArray(activeShifts) || !users || !Array.isArray(users)) {
+      return;
+    }
+
     const now = new Date();
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(now.getDate() - 7);
 
     // Get shifts from last week
     const weeklyShifts = shifts.filter(
-      (s) => new Date(s.clockInTime) >= oneWeekAgo
+      (s) => s.clockInTime && new Date(s.clockInTime) >= oneWeekAgo
     );
     const completedWeeklyShifts = weeklyShifts.filter((s) => s.clockOutTime);
 
     // Calculate average hours per day
     const totalHours = completedWeeklyShifts.reduce((total, shift) => {
+      if (!shift.clockOutTime || !shift.clockInTime) return total;
       const duration =
         new Date(shift.clockOutTime) - new Date(shift.clockInTime);
       return total + duration;
@@ -43,6 +51,7 @@ export default function Analytics({
     // Calculate average people clocking in per day
     const dailyClockIns = {};
     weeklyShifts.forEach((shift) => {
+      if (!shift.clockInTime) return;
       const date = new Date(shift.clockInTime).toDateString();
       dailyClockIns[date] = (dailyClockIns[date] || 0) + 1;
     });
@@ -57,6 +66,7 @@ export default function Analytics({
         const completedUserShifts = userShifts.filter((s) => s.clockOutTime);
 
         const userTotalHours = completedUserShifts.reduce((total, shift) => {
+          if (!shift.clockOutTime || !shift.clockInTime) return total;
           const duration =
             new Date(shift.clockOutTime) - new Date(shift.clockInTime);
           return total + duration;
@@ -82,6 +92,11 @@ export default function Analytics({
   };
 
   const getDailyStats = () => {
+    // Guard against invalid data
+    if (!shifts || !Array.isArray(shifts)) {
+      return [];
+    }
+
     const days = [];
     const now = new Date();
 
@@ -91,12 +106,13 @@ export default function Analytics({
       const dateString = date.toDateString();
 
       const dayShifts = shifts.filter(
-        (s) => new Date(s.clockInTime).toDateString() === dateString
+        (s) => s.clockInTime && new Date(s.clockInTime).toDateString() === dateString
       );
 
       const completedDayShifts = dayShifts.filter((s) => s.clockOutTime);
       const totalHours =
         completedDayShifts.reduce((total, shift) => {
+          if (!shift.clockOutTime || !shift.clockInTime) return total;
           const duration =
             new Date(shift.clockOutTime) - new Date(shift.clockInTime);
           return total + duration;
@@ -118,8 +134,8 @@ export default function Analytics({
   };
 
   const dailyStats = getDailyStats();
-  const maxClockIns = Math.max(...dailyStats.map((d) => d.clockIns), 1);
-  const maxHours = Math.max(...dailyStats.map((d) => d.totalHours), 1);
+  const maxClockIns = dailyStats.length > 0 ? Math.max(...dailyStats.map((d) => d.clockIns), 1) : 1;
+  const maxHours = dailyStats.length > 0 ? Math.max(...dailyStats.map((d) => d.totalHours), 1) : 1;
 
   return (
     <div>
