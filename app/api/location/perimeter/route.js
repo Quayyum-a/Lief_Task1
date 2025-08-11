@@ -1,22 +1,25 @@
 import { NextResponse } from 'next/server';
-import { getDbConnection } from '../../../../lib/db';
+import { dbOperations } from '../../../../lib/supabase';
 
 export async function GET(request) {
   try {
-    const connection = await getDbConnection();
+    const { data: perimeter, error } = await dbOperations.getLocationPerimeter();
     
-    const [rows] = await connection.execute(
-      'SELECT latitude, longitude, radius FROM location_perimeter ORDER BY created_at DESC LIMIT 1'
-    );
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+      console.error('Get perimeter error:', error);
+      return NextResponse.json(
+        { error: 'Database query failed', details: error.message },
+        { status: 500 }
+      );
+    }
     
-    if (rows.length === 0) {
+    if (!perimeter) {
       // Return default perimeter
       return NextResponse.json({
         perimeter: { latitude: 51.5074, longitude: -0.1278, radius: 2000 }
       });
     }
     
-    const perimeter = rows[0];
     return NextResponse.json({
       perimeter: {
         latitude: parseFloat(perimeter.latitude),
@@ -44,16 +47,22 @@ export async function POST(request) {
       );
     }
     
-    const connection = await getDbConnection();
+    const locationData = {
+      latitude: parseFloat(latitude),
+      longitude: parseFloat(longitude),
+      radius: parseInt(radius),
+      updated_at: new Date().toISOString()
+    };
     
-    // Delete existing perimeter
-    await connection.execute('DELETE FROM location_perimeter');
+    const { data, error } = await dbOperations.updateLocationPerimeter(locationData);
     
-    // Insert new perimeter
-    await connection.execute(
-      'INSERT INTO location_perimeter (latitude, longitude, radius) VALUES (?, ?, ?)',
-      [latitude, longitude, radius]
-    );
+    if (error) {
+      console.error('Set perimeter error:', error);
+      return NextResponse.json(
+        { error: 'Database update failed', details: error.message },
+        { status: 500 }
+      );
+    }
     
     return NextResponse.json({
       perimeter: { latitude, longitude, radius }

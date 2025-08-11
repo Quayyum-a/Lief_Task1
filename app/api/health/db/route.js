@@ -1,40 +1,33 @@
 import { NextResponse } from 'next/server';
-import { getDbConnection } from '../../../../lib/db';
+import { supabase } from '../../../../lib/supabase';
 
 export async function GET(request) {
   try {
-    // First check if we have the required environment variables
-    const missingEnvVars = [];
-    if (!process.env.DB_HOST) missingEnvVars.push('DB_HOST');
-    if (!process.env.DB_USER) missingEnvVars.push('DB_USER');
-    if (!process.env.DB_PASSWORD) missingEnvVars.push('DB_PASSWORD');
-    if (!process.env.DB_NAME) missingEnvVars.push('DB_NAME');
-
-    if (missingEnvVars.length > 0) {
+    // Check if we have the required environment variables
+    if (!process.env.SUPABASE_KEY) {
       return NextResponse.json({
         status: 'error',
         database: 'misconfigured',
-        message: `Missing environment variables: ${missingEnvVars.join(', ')}`,
+        message: 'Missing SUPABASE_KEY environment variable',
         environment: process.env.NODE_ENV || 'development'
       }, { status: 500 });
     }
 
-    const connection = await getDbConnection();
-
     // Test the connection with a simple query
-    const [result] = await connection.execute('SELECT 1 as test');
+    const { data, error } = await supabase
+      .from('users')
+      .select('count', { count: 'exact', head: true });
 
-    // Close connection in serverless environment
-    if (process.env.VERCEL && connection.end) {
-      await connection.end();
+    if (error) {
+      throw error;
     }
 
     return NextResponse.json({
       status: 'healthy',
       database: 'connected',
-      message: 'Database connection is working properly',
+      message: 'Supabase connection is working properly',
       environment: process.env.NODE_ENV || 'development',
-      testQuery: result[0].test === 1 ? 'passed' : 'failed'
+      supabaseUrl: 'https://fpzoowjaorzrrvkyvprj.supabase.co'
     });
   } catch (error) {
     console.error('Database health check failed:', error);
