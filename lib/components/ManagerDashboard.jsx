@@ -20,16 +20,20 @@ export default function ManagerDashboard() {
     loadData();
   }, []);
 
-  const loadData = () => {
-    const allShifts = ShiftService.getShifts();
-    const currentlyActive = ShiftService.getActiveShifts();
-    const allUsers = typeof window !== 'undefined'
-      ? JSON.parse(localStorage.getItem("users") || "[]")
-      : [];
+  const loadData = async () => {
+    try {
+      const allShifts = await ShiftService.getAllShifts();
+      const currentlyActive = allShifts.filter(shift => !shift.clockOutTime);
+      const allUsers = typeof window !== 'undefined'
+        ? JSON.parse(localStorage.getItem("users") || "[]")
+        : [];
 
-    setShifts(allShifts);
-    setActiveShifts(currentlyActive);
-    setUsers(allUsers.filter((u) => u.role === "care_worker"));
+      setShifts(allShifts);
+      setActiveShifts(currentlyActive);
+      setUsers(allUsers.filter((u) => u.role === "care_worker"));
+    } catch (error) {
+      console.error('Failed to load manager dashboard data:', error);
+    }
   };
 
   if (user?.role !== "manager") {

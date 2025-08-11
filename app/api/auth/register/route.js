@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDbConnection, initializeDatabase } from '../../../../lib/db';
+import { dbOperations } from '../../../../lib/supabase';
 
 export async function POST(request) {
   try {
@@ -23,50 +23,44 @@ export async function POST(request) {
       );
     }
 
-    // Initialize database tables (safe to call multiple times)
-    try {
-      await initializeDatabase();
-    } catch (initError) {
-      console.warn('Database initialization warning:', initError.message);
-      // Continue anyway - tables might already exist
-    }
-
-    const connection = await getDbConnection();
     const id = Date.now().toString();
+    const userData = {
+      id,
+      username,
+      password,
+      role,
+      created_at: new Date().toISOString()
+    };
 
-    try {
-      await connection.execute(
-        'INSERT INTO users (id, username, password, role) VALUES (?, ?, ?, ?)',
-        [id, username, password, role]
-      );
+    // Create user in Supabase
+    const { data, error } = await dbOperations.createUser(userData);
 
-      // Close connection in serverless environment
-      if (process.env.VERCEL && connection.end) {
-        await connection.end();
-      }
+    if (error) {
+      console.error('Database error:', error);
 
-      return NextResponse.json({
-        user: {
-          id,
-          username,
-          role,
-          createdAt: new Date().toISOString()
-        }
-      });
-    } catch (dbError) {
-      // Close connection on error too
-      if (process.env.VERCEL && connection.end) {
-        try { await connection.end(); } catch (e) {}
-      }
-
-      if (dbError.code === 'ER_DUP_ENTRY') {
+      // Handle duplicate username
+      if (error.code === '23505' || error.message.includes('duplicate')) {
         return NextResponse.json(
           { error: 'Username already exists' },
           { status: 409 }
         );
       }
-      throw dbError;
+
+      return NextResponse.json(
+        { error: 'Database error', details: error.message },
+        { status: 500 }
+      );
     }
+
+    const user = data[0];
+    return NextResponse.json({
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        createdAt: user.created_at
+      }
+    });
   } catch (error) {
     console.error('Registration error:', error);
     return NextResponse.json(

@@ -21,8 +21,8 @@ export default function Dashboard() {
   const loadData = async () => {
     if (user) {
       try {
-        const current = await ShiftService.getCurrentShift(user.id);
-        const userShifts = await ShiftService.getShiftsByUser(user.id);
+        const current = await ShiftService.getActiveShift(user.id);
+        const userShifts = await ShiftService.getUserShifts(user.id);
         setCurrentShift(current);
         setShifts(
           userShifts.sort(

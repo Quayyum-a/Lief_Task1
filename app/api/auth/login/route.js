@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDbConnection } from '../../../../lib/db';
+import { dbOperations } from '../../../../lib/supabase';
 
 export async function POST(request) {
   try {
@@ -24,42 +24,30 @@ export async function POST(request) {
       );
     }
 
-    // Get database connection
-    let connection;
-    try {
-      connection = await getDbConnection();
-    } catch (dbError) {
-      console.error('Database connection failed:', dbError);
+    // Get user from Supabase
+    const { data: user, error } = await dbOperations.getUserByCredentials(username, password);
+
+    if (error) {
+      console.error('Database query error:', error);
       return NextResponse.json(
-        { error: 'Database connection failed', details: dbError.message },
+        { error: 'Database query failed', details: error.message },
         { status: 500 }
       );
     }
 
-    const [rows] = await connection.execute(
-      'SELECT id, username, role, created_at FROM users WHERE username = ? AND password = ?',
-      [username, password]
-    );
-
-    // Close connection in serverless environment
-    if (process.env.VERCEL && connection.end) {
-      await connection.end();
-    }
-
-    if (rows.length === 0) {
+    if (!user) {
       return NextResponse.json(
         { error: 'Invalid username or password' },
         { status: 401 }
       );
     }
 
-    const user = rows[0];
     return NextResponse.json({
       user: {
         id: user.id,
         username: user.username,
         role: user.role,
-        createdAt: user.created_at.toISOString()
+        createdAt: user.created_at
       }
     });
   } catch (error) {

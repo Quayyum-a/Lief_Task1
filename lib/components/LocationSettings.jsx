@@ -15,11 +15,18 @@ export default function LocationSettings({ onUpdate }) {
   const [messageType, setMessageType] = useState("");
 
   useEffect(() => {
-    const current = LocationService.getPerimeter();
-    setPerimeter(current);
+    const loadPerimeter = async () => {
+      try {
+        const current = await LocationService.getPerimeter();
+        setPerimeter(current);
+      } catch (error) {
+        console.error('Failed to load perimeter:', error);
+      }
+    };
+    loadPerimeter();
   }, []);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
@@ -45,7 +52,7 @@ export default function LocationSettings({ onUpdate }) {
         throw new Error("Radius must be between 10 and 10000 meters");
       }
 
-      LocationService.setPerimeter(lat, lon, rad);
+      await LocationService.setPerimeter(lat, lon, rad);
       setMessage("Location perimeter updated successfully");
       setMessageType("success");
       onUpdate();
@@ -61,7 +68,7 @@ export default function LocationSettings({ onUpdate }) {
     setLoading(true);
     setMessage("");
 
-    LocationService.getCurrentPosition()
+    LocationService.getCurrentLocation()
       .then((position) => {
         setPerimeter((prev) => ({
           ...prev,

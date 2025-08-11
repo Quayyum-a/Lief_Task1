@@ -1,105 +1,131 @@
 # Healthcare Shift Tracker
 
-A comprehensive shift tracking application for healthcare workers with location-based verification and management features.
+A Next.js application for tracking healthcare worker shifts with location-based verification, now powered by Supabase.
 
-## 🏗️ Project Structure
+## Features
 
-This project has been split into separate frontend and backend for deployment flexibility:
+- **User Authentication**: Secure login/register for managers and care workers
+- **Shift Management**: Clock in/out with location tracking
+- **Manager Dashboard**: View and manage all staff shifts
+- **Location Verification**: Ensure workers are at correct locations
+- **Real-time Updates**: Live shift status tracking
 
-```
-├── backend/           # Express.js API server (deploy to Vercel)
-├── frontend/          # React SPA (deploy to Netlify)
-├── app/              # Original Next.js app (legacy - for reference)
-├── lib/              # Original components (legacy - for reference)
-└── DEPLOYMENT.md     # Detailed deployment guide
-```
+## Tech Stack
 
-## 🚀 Quick Start
-
-### For Development (Local)
-
-1. **Start Backend:**
-```bash
-cd backend
-npm install
-# Create .env file with database credentials
-npm run dev
-```
-
-2. **Start Frontend:**
-```bash
-cd frontend
-npm install
-# Create .env file with VITE_API_URL=http://localhost:5000
-npm run dev
-```
-
-### For Production Deployment
-
-See `DEPLOYMENT.md` for detailed instructions on deploying to Netlify (frontend) and Vercel (backend).
-
-## 📋 Features
-
-### For Care Workers
-- **Location-Based Clock In/Out**: Must be within designated work area
-- **Shift History**: View past shifts and notes
-- **Real-time Duration**: Track current shift duration
-- **Notes**: Add optional notes when clocking in/out
-
-### For Managers
-- **Staff Overview**: See all currently active staff
-- **Analytics Dashboard**: View shift statistics and metrics
-- **Location Management**: Configure work area perimeter
-- **Shift Reports**: Detailed staff performance data
-
-## 🔧 Technology Stack
-
-- **Frontend**: React 18, Vite, React Router
-- **Backend**: Express.js, MySQL
+- **Frontend**: Next.js 14, React 18
+- **Database**: Supabase (PostgreSQL)
+- **Styling**: CSS3 with responsive design
 - **Icons**: Lucide React
-- **Deployment**: Netlify (frontend) + Vercel (backend)
 
-## 📱 Database Options
+## Getting Started
 
-- **PlanetScale** (Recommended for beginners)
-- **Railway**
-- **Supabase** (PostgreSQL alternative)
-- **Traditional MySQL hosting**
+### Prerequisites
 
-## 🎓 Junior Developer Friendly
+- Node.js 18+ 
+- Supabase account
 
-This project demonstrates:
-- Clean separation of frontend/backend
-- RESTful API design
-- Environment variable configuration
-- Error handling with fallbacks
-- Responsive design
-- Modern React patterns
+### Installation
 
-## 🧪 Demo Accounts
+1. Clone the repository
+```bash
+git clone <repository-url>
+cd healthcare-shift-tracker
+```
 
-After setting up demo data:
-- **Manager**: `manager` / `password123`
-- **Care Workers**: `alice`, `bob`, `carol` / `password123`
+2. Install dependencies
+```bash
+npm install
+```
 
-## 📖 Documentation
+3. Set up environment variables
+```bash
+# Add to your environment or .env.local
+SUPABASE_KEY=your_supabase_anon_key
+```
 
-- `DEPLOYMENT.md` - Complete deployment guide
-- `backend/` - Backend API documentation
-- `frontend/` - Frontend component structure
+4. Set up database tables in Supabase Studio
 
-## 🛠️ Development
+Run these SQL commands in your Supabase project's SQL Editor:
 
-The application includes fallback mechanisms to localStorage, making it work even without a database connection - perfect for development and learning.
+```sql
+-- Create users table
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  password TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('manager', 'care_worker')),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
-## 🚀 Getting Started
+-- Create shifts table  
+CREATE TABLE IF NOT EXISTS shifts (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  username TEXT NOT NULL,
+  clock_in_time TIMESTAMPTZ NOT NULL,
+  clock_in_latitude NUMERIC(10, 8),
+  clock_in_longitude NUMERIC(11, 8),
+  clock_in_note TEXT,
+  clock_out_time TIMESTAMPTZ NULL,
+  clock_out_latitude NUMERIC(10, 8) NULL,
+  clock_out_longitude NUMERIC(11, 8) NULL,
+  clock_out_note TEXT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
 
-1. Follow the deployment guide in `DEPLOYMENT.md`
-2. Set up your database (PlanetScale recommended)
-3. Deploy backend to Vercel
-4. Deploy frontend to Netlify
-5. Load demo data and start using!
+-- Create location_perimeter table
+CREATE TABLE IF NOT EXISTS location_perimeter (
+  id SERIAL PRIMARY KEY,
+  latitude NUMERIC(10, 8) NOT NULL,
+  longitude NUMERIC(11, 8) NOT NULL,
+  radius INTEGER NOT NULL DEFAULT 2000,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
 
----
+5. Run the development server
+```bash
+npm run dev
+```
 
-**Built for learning and production use** - This project showcases modern web development practices suitable for junior developers while being production-ready.
+Visit [http://localhost:3000](http://localhost:3000) to see the application.
+
+## Deployment
+
+### Vercel Deployment
+
+1. Connect your repository to Vercel
+2. Add environment variables:
+   - `SUPABASE_KEY`: Your Supabase anon key
+3. Deploy
+
+## API Endpoints
+
+- `POST /api/auth/login` - User authentication
+- `POST /api/auth/register` - User registration  
+- `GET /api/shifts` - Get shifts (with optional userId and activeOnly params)
+- `POST /api/shifts` - Clock in/out operations
+- `GET /api/location/perimeter` - Get location perimeter settings
+- `POST /api/location/perimeter` - Update location perimeter
+
+## Project Structure
+
+```
+├── app/                    # Next.js app directory
+│   ├── api/               # API routes
+│   ├── dashboard/         # Dashboard page
+│   ├── login/            # Login page
+│   ├── manager/          # Manager dashboard
+│   └── register/         # Registration page
+├── lib/                   # Shared utilities
+│   ├── components/       # React components
+│   ├── contexts/        # React contexts
+│   └── supabase.js      # Supabase configuration
+└── public/               # Static assets
+```
+
+## License
+
+MIT License

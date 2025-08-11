@@ -26,7 +26,7 @@ export default function ClockInOut({
     setError("");
 
     try {
-      const position = await LocationService.getCurrentPosition();
+      const position = await LocationService.getCurrentLocation();
       onLocationUpdate(position);
 
       const isWithin = await LocationService.isWithinPerimeter(
@@ -51,7 +51,7 @@ export default function ClockInOut({
     setError("");
 
     try {
-      const position = await LocationService.getCurrentPosition();
+      const position = await LocationService.getCurrentLocation();
 
       await ShiftService.clockIn(
         user.id,
@@ -79,7 +79,7 @@ export default function ClockInOut({
     setError("");
 
     try {
-      const position = await LocationService.getCurrentPosition();
+      const position = await LocationService.getCurrentLocation();
 
       await ShiftService.clockOut(
         user.id,
